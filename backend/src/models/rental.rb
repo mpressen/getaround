@@ -26,7 +26,14 @@ class Rental
   end
 
   def price_time_component
-    days * car.price_per_day
+    if ENV['DISCOUNT']
+      Discount.run(
+        price_per_day: car.price_per_day,
+        days: days
+      )
+    else
+      days * car.price_per_day
+    end
   end
 
   def days

@@ -6,6 +6,7 @@ require_relative 'src/models/car.rb'
 require_relative 'src/models/rental.rb'
 require_relative 'src/helpers/date_helper.rb'
 require_relative 'src/services/json_file_generator.rb'
+require_relative 'src/services/discount.rb'
 
 class Main
   def self.run
