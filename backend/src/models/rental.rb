@@ -12,11 +12,22 @@ class Rental
     {
       id: id,
       price: price
-    }
+    }.tap do |hash|
+      hash[:commission] = commission.to_hash if ENV['COMMISSION'] == 'true'
+    end
   end
 
   def price
-    price_distance_component + price_time_component
+    @price ||= price_distance_component + price_time_component
+  end
+
+  def commission
+    raise NotImplementedError unless ENV['COMMISSION'] == 'true'
+
+    @commission ||= Commission.new(
+      price: price,
+      days: days
+    )
   end
 
   private
@@ -37,6 +48,6 @@ class Rental
   end
 
   def days
-    DateHelper.period_in_days(start_date, end_date)
+    @days ||= DateHelper.period_in_days(start_date, end_date)
   end
 end
