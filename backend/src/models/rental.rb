@@ -11,9 +11,13 @@ class Rental
   def to_hash
     {
       id: id,
-      price: price
     }.tap do |hash|
-      hash[:commission] = commission.to_hash if ENV['COMMISSION'] == 'true'
+      if ENV['TRANSACTIONS'] == 'true'
+        hash[:actions] = transactions
+      else
+        hash[:price] = price
+        hash[:commission] = commission.to_hash if ENV['COMMISSION'] == 'true'
+      end
     end
   end
 
@@ -28,6 +32,20 @@ class Rental
       price: price,
       days: days
     )
+  end
+
+  def transactions
+    raise NotImplementedError unless ENV['TRANSACTIONS'] == 'true'
+
+    @transactions ||= [
+      ['driver', 'debit', price],
+      ['owner', 'credit', price - commission.total],
+      ['insurance', 'credit', commission.insurance_fee],
+      ['assistance', 'credit', commission.assistance_fee],
+      ['drivy', 'credit', commission.drivy_fee]
+    ].map do |who, type, amount|
+      Transaction.new(who: who, type: type, amount: amount).to_hash
+    end
   end
 
   private

@@ -50,3 +50,22 @@ describe 'level3' do
 
   it { is_expected.to eq expected_output }
 end
+
+describe 'level4' do
+  subject { File.read('level4/data/output.json') }
+  let(:expected_output) { File.read('level4/data/expected_output.json') }
+
+  before do
+    ENV['LEVEL'] = 'level4/'
+    ENV['DISCOUNT'] = 'true'
+    ENV['COMMISSION'] = 'true'
+    ENV['TRANSACTIONS'] = 'true'
+    Main.run
+  end
+
+  after do
+    File.delete('level4/data/output.json')
+  end
+
+  it { is_expected.to eq expected_output }
+end
