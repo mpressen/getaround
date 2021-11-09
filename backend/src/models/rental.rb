@@ -1,11 +1,12 @@
 class Rental
-  attr_reader :id, :car, :start_date, :end_date, :distance
-  def initialize(id:, car:, start_date:, end_date:, distance:)
+  attr_reader :id, :car, :start_date, :end_date, :distance, :options
+  def initialize(id:, car:, start_date:, end_date:, distance:, options:)
     @id = id
     @car = car
     @start_date = Date.parse(start_date)
     @end_date = Date.parse(end_date)
     @distance = distance
+    @options = options
   end
 
   def to_hash
@@ -13,12 +14,17 @@ class Rental
       id: id,
     }.tap do |hash|
       if ENV['TRANSACTIONS'] == 'true'
-        hash[:actions] = transactions
+        hash[:options] = options.map(&:type) if options
+        hash[:actions] = transactions.map(&:to_hash)
       else
         hash[:price] = price
         hash[:commission] = commission.to_hash if ENV['COMMISSION'] == 'true'
       end
     end
+  end
+
+  def days
+    @days ||= DateHelper.period_in_days(start_date, end_date)
   end
 
   def price
@@ -38,13 +44,13 @@ class Rental
     raise NotImplementedError unless ENV['TRANSACTIONS'] == 'true'
 
     @transactions ||= [
-      ['driver', 'debit', price],
-      ['owner', 'credit', price - commission.total],
+      ['driver', 'debit', price + gps_price + baby_seat_price + additional_insurance_price],
+      ['owner', 'credit', price - commission.total + gps_price + baby_seat_price],
       ['insurance', 'credit', commission.insurance_fee],
       ['assistance', 'credit', commission.assistance_fee],
-      ['drivy', 'credit', commission.drivy_fee]
+      ['drivy', 'credit', commission.drivy_fee + additional_insurance_price]
     ].map do |who, type, amount|
-      Transaction.new(who: who, type: type, amount: amount).to_hash
+      Transaction.new(who: who, type: type, amount: amount)
     end
   end
 
@@ -65,7 +71,21 @@ class Rental
     end
   end
 
-  def days
-    @days ||= DateHelper.period_in_days(start_date, end_date)
+  def gps_price
+    @gps ||= option_price('gps', 5)
+  end
+
+  def baby_seat_price
+    @baby_seat ||= option_price('baby_seat', 2)
+  end
+
+  def additional_insurance_price
+    @additional_insurance ||= option_price('additional_insurance', 10)
+  end
+
+  def option_price(type, price_per_day)
+    return 0 unless options&.find{|option| option.type == type}
+
+    price_per_day * 100 * days
   end
 end
